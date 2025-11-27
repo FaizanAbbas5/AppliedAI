@@ -197,14 +197,3 @@ plt.title(f'Confusion Matrix - {best_model_name}')
 plt.tight_layout()
 plt.savefig('confusion_matrix.png', dpi=300)
 plt.show()
-
-import pickle
-
-# Save the best model and vectorizer
-with open('tfidf_vectorizer.pkl', 'wb') as f:
-    pickle.dump(tfidf, f)
-
-with open('best_ml_model.pkl', 'wb') as f:
-    pickle.dump(models[best_model_name], f)
-
-print(f"\nBest model ({best_model_name}) and vectorizer saved!")
