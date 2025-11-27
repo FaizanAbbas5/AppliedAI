@@ -136,6 +136,37 @@ results['SVM'] = {
 print(f"Accuracy: {results['SVM']['accuracy']:.4f}")
 print(f"\nClassification Report:\n{classification_report(y_test, y_pred_svm)}")
 
+# 4 XGBoost
+print("\nTraining XGB:")
+
+le = LabelEncoder()
+y_train_enc = le.fit_transform(y_train)
+y_test_enc = le.transform(y_test)
+
+xgb_model = XGBClassifier(
+    n_estimators=200,
+    learning_rate=0.1,
+    max_depth=6,
+    random_state=42,
+    eval_metric='mlogloss'
+)
+
+xgb_model.fit(X_train_tfidf, y_train_enc)
+models['XGB'] = xgb_model
+y_pred_enc = xgb_model.predict(X_test_tfidf)
+y_pred_xgb = le.inverse_transform(y_pred_enc) # converting back to labels for reportung
+
+results['XGB'] = {
+    'accuracy': accuracy_score(y_test, y_pred_xgb),
+    'accuracy_enc': accuracy_score(y_test_enc, y_pred_enc),
+    'predictions': y_pred_xgb
+}
+
+
+print(f"Accuracy: {results['XGB']['accuracy']:.4f}")
+print(f"Accuracy: {results['XGB']['accuracy_enc']:.4f}")
+print(f"\nClassification Report:\n{classification_report(y_test, y_pred_xgb)}")
+
 # Compare model accuracies
 model_names = list(results.keys())
 accuracies = [results[model]['accuracy'] for model in model_names]
