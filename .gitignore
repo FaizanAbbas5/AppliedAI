@@ -2,3 +2,5 @@ venv/
 confusion_matrix.png
 model_comparison.png
 .env
+personal/
+CA1_T1/__pycache__/

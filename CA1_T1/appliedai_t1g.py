@@ -123,7 +123,7 @@ print(f"\nClassification Report:\n{classification_report(y_test, y_pred_rf)}")
 
 # 3. Support Vector Machine
 print("\nTraining SVM:")
-svm_model = SVC(kernel='linear', random_state=42, C=1.0)
+svm_model = SVC(kernel='linear', random_state=42, C=1.0, probability=True)
 svm_model.fit(X_train_tfidf, y_train)
 models['SVM'] = svm_model
 
