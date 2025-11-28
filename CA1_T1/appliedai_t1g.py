@@ -18,7 +18,7 @@ from xgboost import XGBClassifier
 from sklearn.preprocessing import LabelEncoder
 
 # news data with labels
-df = pd.read_csv('combined_dataset.csv')
+df = pd.read_csv('./CA1_T1/result/combined_dataset.csv')
 
 # Basic data exploration
 print(f"Dataset shape: {df.shape}")
@@ -148,7 +148,9 @@ xgb_model = XGBClassifier(
     learning_rate=0.1,
     max_depth=6,
     random_state=42,
-    eval_metric='mlogloss'
+    eval_metric='mlogloss',
+    tree_method='hist',  # Use 'gpu_hist' for GPU acceleration if available
+    device='cuda'  # Use 'cuda' for GPU, 'cpu' for CPU
 )
 
 xgb_model.fit(X_train_tfidf, y_train_enc)
@@ -166,6 +168,25 @@ results['XGB'] = {
 print(f"Accuracy: {results['XGB']['accuracy']:.4f}")
 print(f"Accuracy: {results['XGB']['accuracy_enc']:.4f}")
 print(f"\nClassification Report:\n{classification_report(y_test, y_pred_xgb)}")
+
+# Save models and vectorizer for Streamlit app
+import joblib
+import os
+
+model_dir = './models'
+os.makedirs(model_dir, exist_ok=True)
+
+# Save TF-IDF vectorizer
+joblib.dump(tfidf, os.path.join(model_dir, 'tfidf_vectorizer.pkl'))
+
+# Save all models
+joblib.dump(lr_model, os.path.join(model_dir, 'logistic_regression.pkl'))
+joblib.dump(rf_model, os.path.join(model_dir, 'random_forest.pkl'))
+joblib.dump(svm_model, os.path.join(model_dir, 'svm.pkl'))
+joblib.dump(xgb_model, os.path.join(model_dir, 'xgboost.pkl'))
+joblib.dump(le, os.path.join(model_dir, 'label_encoder.pkl'))
+
+print(f"\nModels and vectorizer saved to {model_dir}/")
 
 # Compare model accuracies
 model_names = list(results.keys())
