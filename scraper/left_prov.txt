@@ -1,0 +1,13 @@
+cnn
+axios
+cbs-news
+abc-news
+google-news
+independent
+nbc-news
+new-york-magazine
+the-irish-times
+the-verge
+time
+usa-today
+wired

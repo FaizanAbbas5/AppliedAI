@@ -1,0 +1,13 @@
+fox-news
+australian-financial-review
+breitbart-news
+financial-post
+fortune
+newsweek
+national-review
+news-com-au
+the-american-conservative
+the-globe-and-mail
+the-jerusalem-post
+the-times-of-india
+the-wall-street-journal
