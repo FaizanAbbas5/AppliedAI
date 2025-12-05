@@ -449,10 +449,10 @@ def main():
                                         #     except Exception as e:
                                         #         st.warning(f"LIME explanation not available: {str(e)}")
                                                 
-                                        # except Exception as e:
-                                        #     st.error(f"Error generating explainability: {str(e)}")
+                                        except Exception as e:
+                                            st.error(f"Error generating explainability: {str(e)}")
                                     
-                                    # st.markdown("---")
+                                    st.markdown("---")
                                     
                                     # Article content
                                     st.markdown(f"**Title:** {article['title']}")
