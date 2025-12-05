@@ -252,12 +252,11 @@ def visualize_lime_explanation(exp, prediction):
 def main():
     st.set_page_config(
         page_title="News Bias Classifier",
-        page_icon="📰",
         layout="wide"
     )
     
     # Title and description
-    st.title("📰 Political News Bias Classifier")
+    st.title("Political News Bias Classifier")
     st.markdown("""
     Search for political news articles and classify their bias in real-time using machine learning models.
     Articles are classified as **Left**, **Center**, or **Right** leaning.
