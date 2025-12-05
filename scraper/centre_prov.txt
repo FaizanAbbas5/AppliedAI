@@ -1,0 +1,12 @@
+bbc-news
+the-hill
+reuters
+ars-technica
+hacker-news
+medical-news-today
+national-geographic
+news24
+new-scientist
+next-big-future
+recode
+rte
