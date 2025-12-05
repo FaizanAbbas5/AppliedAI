@@ -427,30 +427,30 @@ def main():
                                             else:
                                                 st.info("No significant features found.")
                                                 
-                                            st.markdown("---")
-                                            st.markdown("### LIME Explanation")
-                                            st.markdown("LIME shows how individual words contribute to the prediction (green = supports, red = opposes):")
+                                        #     st.markdown("---")
+                                        #     st.markdown("### LIME Explanation")
+                                        #     st.markdown("LIME shows how individual words contribute to the prediction (green = supports, red = opposes):")
                                             
-                                            try:
-                                                with st.spinner("Generating LIME explanation..."):
-                                                    lime_exp = explain_with_lime(
-                                                        article['content'],
-                                                        models,
-                                                        tfidf,
-                                                        label_encoder,
-                                                        model_choice,
-                                                        num_features=8
-                                                    )
+                                        #     try:
+                                        #         with st.spinner("Generating LIME explanation..."):
+                                        #             lime_exp = explain_with_lime(
+                                        #                 article['content'],
+                                        #                 models,
+                                        #                 tfidf,
+                                        #                 label_encoder,
+                                        #                 model_choice,
+                                        #                 num_features=8
+                                        #             )
                                                     
-                                                    fig = visualize_lime_explanation(lime_exp, bias)
-                                                    if fig:
-                                                        st.pyplot(fig)
-                                                        plt.close()
-                                            except Exception as e:
-                                                st.warning(f"LIME explanation not available: {str(e)}")
+                                        #             fig = visualize_lime_explanation(lime_exp, bias)
+                                        #             if fig:
+                                        #                 st.pyplot(fig)
+                                        #                 plt.close()
+                                        #     except Exception as e:
+                                        #         st.warning(f"LIME explanation not available: {str(e)}")
                                                 
-                                        except Exception as e:
-                                            st.error(f"Error generating explainability: {str(e)}")
+                                        # except Exception as e:
+                                        #     st.error(f"Error generating explainability: {str(e)}")
                                     
                                     st.markdown("---")
                                     
