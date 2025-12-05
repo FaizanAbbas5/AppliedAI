@@ -13,7 +13,6 @@ from news_fetcher import NewsFetcher
 import matplotlib.pyplot as plt
 from lime.lime_text import LimeTextExplainer
 
-# Download NLTK data if not already present
 @st.cache_resource
 def download_nltk_data():
     try:
@@ -27,19 +26,14 @@ def download_nltk_data():
 
 download_nltk_data()
 
-# Initialize lemmatizer and stopwords
 lemmatizer = WordNetLemmatizer()
 stop_words = set(stopwords.words('english'))
 
 def preprocess_text(text):
-    # Convert to lowercase
     text = text.lower()
-    # Remove URLs
     text = re.sub(r'http\S+|www\S+|https\S+', '', text)
-    # Remove special chars/digits
     text = re.sub(r'[^a-zA-Z\s]', '', text)
     
-    # Tokenize
     tokens = text.split()
     
     # Remove stop words and lemmatize
@@ -67,11 +61,10 @@ def load_models():
         return None, None, None
 
 def get_bias_color(bias):
-    """Return color for bias label"""
     colors = {
-        'left': '#3498db',    # Blue
-        'center': '#2ecc71',  # Green
-        'right': '#e74c3c'    # Red
+        'left': '#3498db',    
+        'center': '#2ecc71',  
+        'right': '#e74c3c'  
     }
     return colors.get(bias.lower(), '#95a5a6')
 
@@ -79,18 +72,14 @@ def classify_article(content, models, tfidf, label_encoder, selected_model):
     # Preprocess the content
     cleaned_content = preprocess_text(content)
     
-    # Transform using TF-IDF
     content_tfidf = tfidf.transform([cleaned_content])
     
-    # Get the selected model
     model = models[selected_model]
     
-    # Make prediction and get confidence scores
     if selected_model == 'XGBoost':
         prediction_enc = model.predict(content_tfidf)
         prediction = label_encoder.inverse_transform(prediction_enc)[0]
         
-        # Get probability scores for XGBoost
         probabilities = model.predict_proba(content_tfidf)[0]
         confidence_scores = {
             label: float(prob) 
@@ -99,7 +88,6 @@ def classify_article(content, models, tfidf, label_encoder, selected_model):
     else:
         prediction = model.predict(content_tfidf)[0]
         
-        # Get probability scores
         if hasattr(model, 'predict_proba'):
             probabilities = model.predict_proba(content_tfidf)[0]
             confidence_scores = {
@@ -107,9 +95,7 @@ def classify_article(content, models, tfidf, label_encoder, selected_model):
                 for label, prob in zip(model.classes_, probabilities)
             }
         elif hasattr(model, 'decision_function'):
-            # For SVM without probability
             decision_scores = model.decision_function(content_tfidf)[0]
-            # Normalize to pseudo-probabilities
             exp_scores = np.exp(decision_scores - np.max(decision_scores))
             probabilities = exp_scores / exp_scores.sum()
             confidence_scores = {
@@ -144,13 +130,10 @@ def get_top_features(content, models, tfidf, label_encoder, selected_model, pred
     if len(non_zero_indices) == 0:
         return []
     
-    # Get TF-IDF scores for non-zero features
     tfidf_scores = content_tfidf.toarray()[0][non_zero_indices]
     
-    # Get model coefficients or feature importances
     try:
         if selected_model == 'Logistic Regression':
-            # Get coefficients for the predicted class
             if hasattr(model, 'classes_'):
                 class_idx = np.where(model.classes_ == prediction)[0][0]
                 if len(model.coef_.shape) > 1:
@@ -158,17 +141,14 @@ def get_top_features(content, models, tfidf, label_encoder, selected_model, pred
                 else:
                     coefficients = model.coef_[0]
                 
-                # Calculate feature importance as coefficient * tfidf_score
                 feature_importance = np.abs(coefficients[non_zero_indices]) * tfidf_scores
             else:
                 feature_importance = tfidf_scores
                 
         elif selected_model == 'Random Forest':
-            # Use feature importances
             feature_importance = model.feature_importances_[non_zero_indices] * tfidf_scores
             
         elif selected_model == 'SVM':
-            # Get coefficients for linear SVM
             if hasattr(model, 'coef_'):
                 class_idx = np.where(model.classes_ == prediction)[0][0]
                 if len(model.coef_.shape) > 1:
@@ -180,7 +160,6 @@ def get_top_features(content, models, tfidf, label_encoder, selected_model, pred
                 feature_importance = tfidf_scores
                 
         elif selected_model == 'XGBoost':
-            # XGBoost feature importance
             if hasattr(model, 'feature_importances_'):
                 feature_importance = model.feature_importances_[non_zero_indices] * tfidf_scores
             else:
@@ -188,7 +167,6 @@ def get_top_features(content, models, tfidf, label_encoder, selected_model, pred
         else:
             feature_importance = tfidf_scores
             
-        # Get top features
         top_indices = np.argsort(feature_importance)[-top_n:][::-1]
         top_features = [
             (feature_names[non_zero_indices[idx]], float(feature_importance[idx]))
@@ -209,7 +187,6 @@ def explain_with_lime(content, models, tfidf, label_encoder, selected_model, num
     """Use LIME to explain the prediction"""
     model = models[selected_model]
     
-    # Create a prediction function for LIME
     def predict_proba_fn(texts):
         cleaned_texts = [preprocess_text(text) for text in texts]
         text_tfidf = tfidf.transform(cleaned_texts)
@@ -220,7 +197,6 @@ def explain_with_lime(content, models, tfidf, label_encoder, selected_model, num
             predictions = model.predict_proba(text_tfidf)
         elif hasattr(model, 'decision_function'):
             decision_scores = model.decision_function(text_tfidf)
-            # Normalize to probabilities
             if len(decision_scores.shape) == 1:
                 decision_scores = decision_scores.reshape(-1, 1)
             exp_scores = np.exp(decision_scores - np.max(decision_scores, axis=1, keepdims=True))
@@ -230,16 +206,13 @@ def explain_with_lime(content, models, tfidf, label_encoder, selected_model, num
         
         return predictions
     
-    # Get class names
     if selected_model == 'XGBoost':
         class_names = label_encoder.classes_.tolist()
     else:
         class_names = model.classes_.tolist()
     
-    # Create LIME explainer
     explainer = LimeTextExplainer(class_names=class_names)
     
-    # Explain the prediction
     exp = explainer.explain_instance(
         content,
         predict_proba_fn,
@@ -297,7 +270,7 @@ def main():
         st.stop()
     
     # Sidebar for configuration
-    st.sidebar.header("⚙️ Configuration")
+    st.sidebar.header(" Configuration")
     
     # Mode selection
     mode = st.sidebar.radio(
@@ -337,11 +310,11 @@ def main():
     # API Key input (required)
     st.sidebar.markdown("---")
     st.sidebar.markdown("### News API Configuration")
-    st.sidebar.markdown("⚠️ **API Key Required** - Get a free key from [NewsAPI.org](https://newsapi.org/)")
+    st.sidebar.markdown("**API Key Required** - Get a free key from [NewsAPI.org](https://newsapi.org/)")
     api_key = st.sidebar.text_input("News API Key (Required):", type="password", help="Enter your NewsAPI.org API key")
     
     if not api_key:
-        st.sidebar.error("⚠️ Please enter your News API key to search for articles")
+        st.sidebar.error(" Please enter your News API key to search for articles")
     
     # Main content
     st.markdown("---")
@@ -350,7 +323,7 @@ def main():
     col1, col2 = st.columns([3, 1])
     with col1:
         search_query = st.text_input(
-            "🔍 Search for political news:",
+            " Search for political news:",
             placeholder="e.g., healthcare, immigration, climate change...",
             help="Enter keywords to search for political news articles"
         )
@@ -361,14 +334,12 @@ def main():
     # Search and display results
     if search_button and search_query:
         if not api_key:
-            st.error("⚠️ Please enter your News API key in the sidebar to search for articles.")
+            st.error("Please enter your News API key in the sidebar to search for articles.")
         else:
             with st.spinner("Fetching and analyzing news articles..."):
                 try:
-                    # Initialize news fetcher
                     news_fetcher = NewsFetcher(api_key=api_key)
                     
-                    # Fetch articles
                     articles = news_fetcher.search_news(search_query, max_results=5)
                     
                     if not articles:
@@ -379,10 +350,8 @@ def main():
                         else:
                             st.success(f"Found {len(articles)} articles. Comparing {model_choice} vs {model_choice_2}...")
                         
-                        # Display articles with classifications
                         for idx, article in enumerate(articles, 1):
                             if mode == "Single Model":
-                                # Single model mode
                                 bias, confidence, all_scores = classify_article(
                                     article['content'], 
                                     models, 
@@ -391,9 +360,7 @@ def main():
                                     model_choice
                                 )
                                 
-                                # Create expandable card for each article
-                                with st.expander(f"📄 Article {idx}: {article['title']}", expanded=(idx == 1)):
-                                    # Bias classification badge with confidence
+                                with st.expander(f"Article {idx}: {article['title']}", expanded=(idx == 1)):
                                     col_bias, col_conf, col_source = st.columns([1, 1, 2])
                                     with col_bias:
                                         bias_color = get_bias_color(bias)
@@ -415,7 +382,6 @@ def main():
                                         st.markdown(f"**Author:** {article['author']}")
                                         st.markdown(f"**Published:** {article['published_at'][:10]}")
                                     
-                                    # Show all confidence scores
                                     if all_scores:
                                         st.markdown("**Confidence Breakdown:**")
                                         score_cols = st.columns(len(all_scores))
@@ -425,13 +391,11 @@ def main():
                                     
                                     st.markdown("---")
                                     
-                                    # Explainability Section
                                     with st.expander("🔍 **Explainability: Why this prediction?**", expanded=False):
                                         st.markdown("### Feature Importance Analysis")
                                         st.markdown("These are the words that most influenced this prediction:")
                                         
                                         try:
-                                            # Get top features
                                             top_features = get_top_features(
                                                 article['content'],
                                                 models,
@@ -443,7 +407,6 @@ def main():
                                             )
                                             
                                             if top_features:
-                                                # Display as a table
                                                 col_word, col_importance = st.columns([2, 1])
                                                 with col_word:
                                                     st.markdown("**Word/Phrase**")
@@ -455,7 +418,6 @@ def main():
                                                     with col_word:
                                                         st.write(f"• {word}")
                                                     with col_importance:
-                                                        # Create a simple bar visualization
                                                         normalized_imp = importance / max([x[1] for x in top_features])
                                                         bar_width = int(normalized_imp * 100)
                                                         st.markdown(
@@ -466,7 +428,6 @@ def main():
                                             else:
                                                 st.info("No significant features found.")
                                                 
-                                            # Try LIME explanation
                                             st.markdown("---")
                                             st.markdown("### LIME Explanation")
                                             st.markdown("LIME shows how individual words contribute to the prediction (green = supports, red = opposes):")
@@ -482,7 +443,6 @@ def main():
                                                         num_features=8
                                                     )
                                                     
-                                                    # Visualize
                                                     fig = visualize_lime_explanation(lime_exp, bias)
                                                     if fig:
                                                         st.pyplot(fig)
@@ -505,7 +465,7 @@ def main():
                                     
                                     # Link to full article
                                     if article['url']:
-                                        st.markdown(f"[🔗 Read Full Article]({article['url']})")
+                                        st.markdown(f"[Read Full Article]({article['url']})")
                                     
                                     st.markdown("")
                             
@@ -528,7 +488,7 @@ def main():
                                 )
                                 
                                 # Create expandable card for each article
-                                with st.expander(f"📄 Article {idx}: {article['title']}", expanded=(idx == 1)):
+                                with st.expander(f"Article {idx}: {article['title']}", expanded=(idx == 1)):
                                     # Show article metadata
                                     st.markdown(f"**Source:** {article['source']} | **Author:** {article['author']} | **Published:** {article['published_at'][:10]}")
                                     st.markdown("---")
@@ -579,14 +539,14 @@ def main():
                                     # Agreement indicator
                                     st.markdown("---")
                                     if bias1 == bias2:
-                                        st.success(f"✅ **Models Agree:** Both classified as **{bias1.upper()}**")
+                                        st.success(f" **Models Agree:** Both classified as **{bias1.upper()}**")
                                     else:
-                                        st.warning(f"⚠️ **Models Disagree:** {model_choice} says **{bias1.upper()}** ({confidence1:.1%}), {model_choice_2} says **{bias2.upper()}** ({confidence2:.1%})")
+                                        st.warning(f" **Models Disagree:** {model_choice} says **{bias1.upper()}** ({confidence1:.1%}), {model_choice_2} says **{bias2.upper()}** ({confidence2:.1%})")
                                     
                                     st.markdown("---")
                                     
                                     # Explainability Comparison Section
-                                    with st.expander("🔍 **Explainability Comparison: Why the different predictions?**", expanded=False):
+                                    with st.expander("**Explainability Comparison: Why the different predictions?**", expanded=False):
                                         st.markdown("Compare what features influenced each model's decision:")
                                         
                                         try:
@@ -649,7 +609,7 @@ def main():
                                             # Quantify disagreement
                                             if bias1 != bias2 and top_features1 and top_features2:
                                                 st.markdown("---")
-                                                st.markdown("### 📊 Disagreement Analysis")
+                                                st.markdown("###  Disagreement Analysis")
                                                 
                                                 # Calculate overlap in top features
                                                 words1 = set([f[0] for f in top_features1])
@@ -672,9 +632,9 @@ def main():
                                                 
                                                 # Interpretation
                                                 if overlap_pct < 30:
-                                                    st.warning("⚠️ Low feature overlap suggests models are focusing on different aspects of the text.")
+                                                    st.warning(" Low feature overlap suggests models are focusing on different aspects of the text.")
                                                 elif confidence_diff > 0.3:
-                                                    st.info("ℹ️ High confidence difference - one model is much more certain than the other.")
+                                                    st.info("High confidence difference - one model is much more certain than the other.")
                                                 else:
                                                     st.success("✓ Models have moderate agreement in their reasoning.")
                                         
@@ -683,22 +643,19 @@ def main():
                                     
                                     st.markdown("---")
                                     
-                                    # Article content
                                     st.markdown(f"**Title:** {article['title']}")
                                     st.markdown(f"**Content Preview:**")
                                     
-                                    # Show first 500 characters of content
                                     content_preview = article['content'][:500] + "..." if len(article['content']) > 500 else article['content']
                                     st.write(content_preview)
                                     
-                                    # Link to full article
                                     if article['url']:
-                                        st.markdown(f"[🔗 Read Full Article]({article['url']})")
+                                        st.markdown(f"[ Read Full Article]({article['url']})")
                                     
                                     st.markdown("")
                         
                 except Exception as e:
-                    st.error(f"❌ Error fetching articles: {str(e)}")
+                    st.error(f"Error fetching articles: {str(e)}")
                     st.info("Please check your API key and internet connection.")
     
     elif search_button and not search_query:
@@ -706,18 +663,18 @@ def main():
     
     # Instructions when no search has been made
     if not search_button:
-        st.info("👆 Enter a search query above to find and classify political news articles.")
+        st.info("Enter a search query above to find and classify political news articles.")
         
         # Show example
         st.markdown("---")
-        st.markdown("### 💡 Example Queries")
+        st.markdown("###  Example Queries")
         col1, col2, col3 = st.columns(3)
         with col1:
-            st.code("healthcare reform")
+            st.code("US healthcare system")
         with col2:
-            st.code("immigration policy")
+            st.code("Trump immigration policy")
         with col3:
-            st.code("climate change")
+            st.code("US election")
 
 if __name__ == "__main__":
     main()
